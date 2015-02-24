@@ -1,5 +1,23 @@
 package de.codecentric.jmeter;
 
+import static org.twdata.maven.mojoexecutor.MojoExecutor.artifactId;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.configuration;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.element;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.executeMojo;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.executionEnvironment;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.goal;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.groupId;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.name;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.plugin;
+import static org.twdata.maven.mojoexecutor.MojoExecutor.version;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
@@ -12,15 +30,6 @@ import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-
-import static org.twdata.maven.mojoexecutor.MojoExecutor.*;
 
 @Mojo(name = "create-graph")
 public class JMeterPluginsMojo extends AbstractMojo {
@@ -109,34 +118,36 @@ public class JMeterPluginsMojo extends AbstractMojo {
                                 groupId("org.codehaus.mojo"),
                                 artifactId("exec-maven-plugin"),
                                 version("1.2.1")),
-                        goal("exec"),
-                        configuration(
-                                element(name("executable"), "java"),
-                                element(name("workingDirectory"), binDir.getAbsolutePath()),
-                                element(name("arguments"),
-                                        element(name("argument"), "-Dlog_file="),
-                                        element(name("argument"), "-classpath"),
-                                        element(name("argument"),
-                                                libDir.getAbsolutePath() + File.separator + "*" +
-                                                File.pathSeparator +
-                                                libExtDir.getAbsolutePath() + File.separator + "*"),
-                                        element(name("argument"), "kg.apc.cmd.UniversalRunner"),
-                                        element(name("argument"), "--tool"),
-                                        element(name("argument"), "Reporter"),
-                                        element(name("argument"), "--input-jtl"),
-                                        element(name("argument"), inputFile.getAbsolutePath()),
-                                        element(name("argument"), "--plugin-type"),
-                                        element(name("argument"), graph.pluginType),
-                                        element(name("argument"), "--width"),
-                                        element(name("argument"), String.valueOf(graph.width)),
-                                        element(name("argument"), "--height"),
-                                        element(name("argument"), String.valueOf(graph.height)),
-                                        element(name("argument"), "--generate-png"),
-                                        element(name("argument"), graph.outputFile.getAbsolutePath()))),
-                        executionEnvironment(
-                                mavenProject,
-                                mavenSession,
-                                pluginManager));
+                                goal("exec"),
+                                configuration(
+                                        element(name("executable"), "java"),
+                                        element(name("workingDirectory"), binDir.getAbsolutePath()),
+                                        element(name("arguments"),
+                                                element(name("argument"), "-Dlog_file="),
+                                                element(name("argument"), "-classpath"),
+                                                element(name("argument"),
+                                                        libDir.getAbsolutePath() + File.separator + "*" +
+                                                                File.pathSeparator +
+                                                                libExtDir.getAbsolutePath() + File.separator + "*"),
+                                                                element(name("argument"), "kg.apc.cmd.UniversalRunner"),
+                                                                element(name("argument"), "--tool"),
+                                                                element(name("argument"), "Reporter"),
+                                                                element(name("argument"), "--input-jtl"),
+                                                                element(name("argument"), inputFile.getAbsolutePath()),
+                                                                element(name("argument"), "--plugin-type"),
+                                                                element(name("argument"), graph.pluginType),
+                                                                element(name("argument"), "--width"),
+                                                                element(name("argument"), String.valueOf(graph.width)),
+                                                                element(name("argument"), "--height"),
+                                                                element(name("argument"), String.valueOf(graph.height)),
+                                                                element(name("argument"), "--aggregate-rows"),
+                                                                element(name("argument"), graph.aggregateRows()),
+                                                                element(name("argument"), "--generate-png"),
+                                                                element(name("argument"), graph.outputFile.getAbsolutePath()))),
+                                                                executionEnvironment(
+                                                                        mavenProject,
+                                                                        mavenSession,
+                                                                        pluginManager));
             } catch (Throwable throwable) {
                 throw new RuntimeException(throwable);
             }
@@ -154,8 +165,9 @@ public class JMeterPluginsMojo extends AbstractMojo {
 
     private boolean isDependencyOf(Artifact artifact, String parentArtifactName) {
         for (String parent : artifact.getDependencyTrail()) {
-            if (parent.contains(parentArtifactName))
+            if (parent.contains(parentArtifactName)) {
                 return true;
+            }
         }
         return false;
     }
@@ -175,6 +187,11 @@ public class JMeterPluginsMojo extends AbstractMojo {
         Integer width;
         Integer height;
         File outputFile;
+        Boolean aggregateRows;
+
+        String aggregateRows() {
+            return aggregateRows != null && aggregateRows == true ? "yes" : "no";
+        }
 
         @Override
         public String toString() {
@@ -183,6 +200,7 @@ public class JMeterPluginsMojo extends AbstractMojo {
                     ", width=" + width +
                     ", height=" + height +
                     ", outputFile=" + outputFile +
+                    ", aggregateRows=" + aggregateRows() +
                     '}';
         }
     }
